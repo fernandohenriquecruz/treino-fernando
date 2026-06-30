@@ -333,10 +333,18 @@ const DATA = {
 };
 
 const TOTAL_SESSIONS = 36;
+const INITIAL_OFFSETS = { A: 2, B: 2, C: 1 };
+const TOTAL_PER_DAY = 12; // 36 / 3
 let state = { checks:{}, history:[], currentDay:'A', sessionNum:6 };
 let activeDay = 'A';
 
 const STORAGE_KEY = 'treino-fernando-state';
+
+function getCompletedSessions(day) {
+  const countInHistory = state.history.filter(h => h.day === day).length;
+  const offset = INITIAL_OFFSETS[day] || 0;
+  return offset + countInHistory;
+}
 
 function loadState(){
   try{
@@ -411,8 +419,8 @@ function render(){
   document.querySelectorAll('.tab').forEach(t=>{
     const day = t.dataset.day;
     t.classList.toggle('active', day===activeDay);
-    const p = dayProgress(day);
-    document.getElementById('badge'+day).textContent = p.done+'/'+p.total;
+    const completed = getCompletedSessions(day);
+    document.getElementById('badge'+day).textContent = completed+'/'+TOTAL_PER_DAY;
   });
 
   // next up banner
@@ -486,7 +494,7 @@ function render(){
       `;
     });
 
-    html += `<button class="finish-btn" data-day="${day}" ${p.done<p.total?'':''}>${p.done===p.total ? 'Finalizar treino ' + day : 'Finalizar treino ' + day + ' (' + p.done + '/' + p.total + ')'}</button>`;
+    html += `<button class="finish-btn" data-day="${day}">Finalizar treino ${day} (${p.done}/${p.total})</button>`;
 
     panel.innerHTML = html;
     main.appendChild(panel);
@@ -524,13 +532,19 @@ function attachHandlers(){
         return;
       }
 
+      if(!confirm(`Deseja realmente finalizar o Treino ${day} de hoje?`)){
+        return;
+      }
+
       // snapshot para permitir rollback se a gravação falhar
       const prevHistory = JSON.parse(JSON.stringify(state.history));
       const prevChecks = JSON.parse(JSON.stringify(state.checks));
       const prevCurrentDay = state.currentDay;
 
       const now = new Date().toISOString();
-      state.history.push({day, date: now, completed: p.done, total: p.total});
+      const checkedIds = DATA[day].exercises.filter(ex=>state.checks[ex.id]).map(ex=>ex.id);
+
+      state.history.push({day, date: now, completed: p.done, total: p.total, checkedIds});
       DATA[day].exercises.forEach(ex=>{ state.checks[ex.id] = false; });
       const next = rotationOrder(day);
       state.currentDay = next;
@@ -559,10 +573,51 @@ function renderHistory(){
     return;
   }
   let html = '';
-  [...state.history].reverse().forEach(h=>{
-    html += `<div class="hist-row"><span>Treino ${h.day}</span><span>${h.completed}/${h.total} exercícios</span><span>${formatDate(h.date)}</span></div>`;
+  const indexedHistory = state.history.map((h, index) => ({ ...h, originalIndex: index }));
+  [...indexedHistory].reverse().forEach(h=>{
+    html += `
+      <div class="hist-row" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Treino ${h.day}</span>
+        <span>${h.completed}/${h.total} ex</span>
+        <span>${formatDate(h.date)}</span>
+        <button class="delete-hist-btn" data-index="${h.originalIndex}" style="background:none; border:none; color:var(--red); font-size:14px; cursor:pointer; padding:2px 8px;" title="Excluir e restaurar treino">🗑</button>
+      </div>
+    `;
   });
   box.innerHTML = html;
+
+  // Associa os eventos de exclusão
+  document.querySelectorAll('.delete-hist-btn').forEach(b=>{
+    b.onclick = (e)=>{
+      e.stopPropagation();
+      const index = parseInt(b.dataset.index, 10);
+      const entry = state.history[index];
+      if(!entry) return;
+
+      if(confirm(`Deseja excluir este Treino ${entry.day} de ${formatDate(entry.date)} do histórico e restaurar o progresso dele?`)){
+        // 1. Restaurar checks
+        if(entry.checkedIds){
+          DATA[entry.day].exercises.forEach(ex=>{
+            state.checks[ex.id] = entry.checkedIds.includes(ex.id);
+          });
+        } else {
+          DATA[entry.day].exercises.forEach(ex=>{
+            state.checks[ex.id] = true;
+          });
+        }
+
+        // 2. Mudar rotação/dia atual de volta para o dia excluído
+        state.currentDay = entry.day;
+        activeDay = entry.day;
+
+        // 3. Remover do histórico
+        state.history.splice(index, 1);
+
+        saveState();
+        render();
+      }
+    };
+  });
 }
 
 document.getElementById('historyToggleBtn').onclick = ()=>{
