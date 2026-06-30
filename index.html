@@ -235,7 +235,7 @@
   <div class="header-inner">
     <div class="eyebrow">Treino Diário — Ajustado</div>
     <h1>FERNANDO</h1>
-    <div class="sub">Rotação A → B → C · Sessão <span id="sessionNum">6</span> de 36 · Ajustes articulares aplicados</div>
+    <div class="sub">Rotação A → B → C · Sessão <span id="sessionNum">0</span> de 30 · Ajustes articulares aplicados</div>
     <div class="cycle-bar">
       <div class="cycle-track"><div class="cycle-fill" id="cycleFill"></div></div>
       <div class="cycle-label" id="cycleLabel">17%</div>
@@ -332,18 +332,16 @@ const DATA = {
   }
 };
 
-const TOTAL_SESSIONS = 36;
-const INITIAL_OFFSETS = { A: 2, B: 2, C: 1 };
-const TOTAL_PER_DAY = 12; // 36 / 3
-let state = { checks:{}, history:[], currentDay:'A', sessionNum:6 };
+const TOTAL_SESSIONS = 30;
+const TOTAL_PER_DAY = 10; // 30 / 3
+let state = { checks:{}, history:[], currentDay:'A', sessionNum:0 };
 let activeDay = 'A';
 
 const STORAGE_KEY = 'treino-fernando-state';
 
 function getCompletedSessions(day) {
   const countInHistory = state.history.filter(h => h.day === day).length;
-  const offset = INITIAL_OFFSETS[day] || 0;
-  return offset + countInHistory;
+  return countInHistory;
 }
 
 function loadState(){
@@ -602,7 +600,7 @@ function renderHistory(){
           });
         } else {
           DATA[entry.day].exercises.forEach(ex=>{
-            state.checks[ex.id] = true;
+            state.checks[ex.id] = false;
           });
         }
 
