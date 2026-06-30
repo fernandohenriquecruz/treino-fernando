@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Treino — Fernando</title>
+
+<!-- PWA: instalação como app -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0c0d0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Treino">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg: #0c0d0a;
+    --bg-raised: #15170f;
+    --bg-card: #1a1d14;
+    --line: #2a2e1f;
+    --acid: #c5ff3d;
+    --acid-dim: #8fb82c;
+    --amber: #ff9d2f;
+    --red: #ff4d4d;
+    --ink: #eef0e3;
+    --ink-dim: #9aa088;
+    --ink-faint: #5d624f;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 800px 400px at 50% -10%, rgba(197,255,61,0.06), transparent),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    padding-bottom:80px;
+  }
+  ::selection{ background:var(--acid); color:#0c0d0a; }
+
+  /* ===== HEADER ===== */
+  header{
+    padding:28px 20px 22px;
+    border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:50;
+    background:rgba(12,13,10,0.92);
+    backdrop-filter: blur(10px);
+  }
+  .header-inner{ max-width:720px; margin:0 auto; }
+  .eyebrow{
+    font-family:'Space Mono', monospace;
+    font-size:11px; letter-spacing:0.18em; text-transform:uppercase;
+    color:var(--acid-dim); margin-bottom:6px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{ content:''; width:6px; height:6px; background:var(--acid); border-radius:50%; box-shadow:0 0 8px var(--acid); }
+  h1{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:42px; letter-spacing:0.01em; line-height:0.95;
+    color:var(--ink);
+  }
+  .sub{ font-size:13px; color:var(--ink-dim); margin-top:4px; }
+
+  .cycle-bar{
+    margin-top:18px; display:flex; align-items:center; gap:12px;
+  }
+  .cycle-track{
+    flex:1; height:5px; background:var(--bg-raised); border-radius:3px; overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .cycle-fill{ height:100%; background:linear-gradient(90deg, var(--acid-dim), var(--acid)); transition:width .4s ease; }
+  .cycle-label{
+    font-family:'Space Mono', monospace; font-size:11px; color:var(--ink-dim); white-space:nowrap;
+  }
+
+  #saveStatus{
+    font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:0.04em;
+    margin-top:10px; padding:4px 0; display:inline-block;
+    transition:.2s;
+  }
+  #saveStatus.saving{ color:var(--ink-faint); }
+  #saveStatus.ok{ color:var(--acid-dim); }
+  #saveStatus.error, #saveStatus.unsupported{
+    color:var(--red); cursor:pointer; text-decoration:underline;
+    animation: pulse-error 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse-error{ 0%,100%{opacity:1;} 50%{opacity:0.55;} }
+
+  /* ===== NEXT UP BANNER ===== */
+  .next-up{
+    max-width:720px; margin:18px auto 0; padding:16px 18px;
+    background:var(--bg-card); border:1px solid var(--line); border-left:3px solid var(--acid);
+    border-radius:8px; display:flex; justify-content:space-between; align-items:center;
+    gap:16px; flex-wrap:wrap;
+  }
+  .next-up-text{ font-size:13px; color:var(--ink-dim); }
+  .next-up-text b{ color:var(--acid); font-weight:700; }
+  .next-up-day{
+    font-family:'Bebas Neue', sans-serif; font-size:28px; color:var(--ink); letter-spacing:0.02em;
+  }
+
+  /* ===== TABS ===== */
+  .tabs{
+    max-width:720px; margin:24px auto 0; padding:0 20px;
+    display:flex; gap:8px;
+  }
+  .tab{
+    flex:1; padding:14px 0; text-align:center;
+    font-family:'Bebas Neue', sans-serif; font-size:20px; letter-spacing:0.04em;
+    background:var(--bg-raised); border:1px solid var(--line); border-radius:8px 8px 0 0;
+    color:var(--ink-faint); cursor:pointer; transition:.2s; position:relative;
+  }
+  .tab.active{ background:var(--bg-card); color:var(--acid); border-color:var(--acid-dim); border-bottom-color:var(--bg-card); }
+  .tab .done-badge{
+    font-family:'Space Mono', monospace; font-size:9px; display:block; margin-top:2px;
+    color:var(--ink-faint); letter-spacing:0.05em;
+  }
+  .tab.active .done-badge{ color:var(--acid-dim); }
+
+  /* ===== MAIN ===== */
+  main{ max-width:720px; margin:0 auto; padding:0 20px; }
+  .day-panel{ display:none; padding-top:18px; }
+  .day-panel.active{ display:block; }
+
+  .day-meta{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:14px 0 18px; border-bottom:1px solid var(--line); margin-bottom:18px;
+  }
+  .day-meta-left{ font-size:13px; color:var(--ink-dim); }
+  .day-meta-left b{ color:var(--ink); }
+  .last-done{ font-family:'Space Mono', monospace; font-size:11px; color:var(--ink-faint); }
+
+  /* group divider */
+  .group-divider{
+    font-family:'Space Mono', monospace; font-size:11px; letter-spacing:0.15em;
+    text-transform:uppercase; color:var(--ink-faint);
+    margin:26px 0 10px; display:flex; align-items:center; gap:10px;
+  }
+  .group-divider::after{ content:''; flex:1; height:1px; background:var(--line); }
+  .group-divider:first-child{ margin-top:0; }
+
+  /* ===== EXERCISE CARD ===== */
+  .ex-card{
+    background:var(--bg-card); border:1px solid var(--line); border-radius:10px;
+    padding:16px; margin-bottom:10px; transition:.2s;
+    position:relative;
+  }
+  .ex-card.checked{ border-color:var(--acid-dim); background:linear-gradient(135deg, rgba(197,255,61,0.05), var(--bg-card)); }
+  .ex-card.modified{ border-left:3px solid var(--amber); }
+  .ex-card.modified.checked{ border-left:3px solid var(--amber); }
+
+  .ex-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .ex-name{ font-size:16px; font-weight:700; color:var(--ink); line-height:1.25; }
+  .ex-tag{ font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px; }
+
+  .check-btn{
+    width:30px; height:30px; border-radius:50%; border:2px solid var(--ink-faint);
+    background:transparent; cursor:pointer; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; transition:.15s;
+  }
+  .check-btn:hover{ border-color:var(--acid); }
+  .check-btn.checked{ background:var(--acid); border-color:var(--acid); }
+  .check-btn.checked::after{ content:'✓'; color:#0c0d0a; font-weight:800; font-size:15px; }
+
+  .ex-stats{
+    display:flex; gap:18px; margin-top:12px; font-family:'Space Mono', monospace; font-size:12.5px; color:var(--ink-dim);
+  }
+  .ex-stats span b{ color:var(--ink); font-weight:700; }
+
+  .ex-note{
+    margin-top:10px; padding:9px 12px; background:rgba(255,157,47,0.08); border:1px solid rgba(255,157,47,0.25);
+    border-radius:6px; font-size:12.5px; color:#ffc285; line-height:1.45;
+  }
+  .ex-note b{ color:var(--amber); }
+  .ex-note.swap{ background:rgba(197,255,61,0.06); border-color:rgba(197,255,61,0.2); color:#d4f5a3; }
+  .ex-note.swap b{ color:var(--acid); }
+  .ex-note.caution{ background:rgba(255,77,77,0.08); border-color:rgba(255,77,77,0.25); color:#ffb3b3; }
+  .ex-note.caution b{ color:var(--red); }
+
+  .ex-original{
+    margin-top:8px; font-size:11.5px; color:var(--ink-faint); font-family:'Space Mono', monospace;
+  }
+  .ex-original s{ opacity:0.75; }
+
+  /* CARDIO block */
+  .cardio-card{
+    background:var(--bg-card); border:1px dashed var(--acid-dim); border-radius:10px;
+    padding:16px; margin-bottom:10px;
+  }
+  .cardio-top{ display:flex; justify-content:space-between; align-items:center; }
+  .cardio-name{ font-size:16px; font-weight:700; color:var(--acid); }
+  .cardio-detail{ font-size:12.5px; color:var(--ink-dim); margin-top:6px; font-family:'Space Mono', monospace; }
+
+  /* finish button */
+  .finish-btn{
+    width:100%; margin-top:24px; padding:16px; border:none; border-radius:10px;
+    background:var(--acid); color:#0c0d0a; font-family:'Bebas Neue'; font-size:20px; letter-spacing:0.03em;
+    cursor:pointer; transition:.15s;
+  }
+  .finish-btn:hover{ filter:brightness(1.08); }
+  .finish-btn:disabled{ background:var(--bg-raised); color:var(--ink-faint); cursor:not-allowed; }
+
+  /* footer legend */
+  .legend{
+    max-width:720px; margin:30px auto 0; padding:16px 20px;
+    border-top:1px solid var(--line); display:flex; gap:18px; flex-wrap:wrap;
+  }
+  .legend-item{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-faint); font-family:'Space Mono', monospace; }
+  .legend-dot{ width:8px; height:8px; border-radius:2px; }
+
+  .history-toggle{
+    max-width:720px; margin:8px auto 0; padding:0 20px;
+  }
+  .history-toggle button{
+    background:none; border:none; color:var(--ink-faint); font-family:'Space Mono', monospace; font-size:11px;
+    cursor:pointer; text-decoration:underline; padding:8px 0;
+  }
+  #historyBox{ display:none; max-width:720px; margin:0 auto; padding:0 20px 20px; }
+  .hist-row{ display:flex; justify-content:space-between; font-size:12px; color:var(--ink-dim); padding:6px 0; border-bottom:1px solid var(--line); font-family:'Space Mono', monospace;}
+
+  @media (max-width:480px){
+    h1{ font-size:34px; }
+    .next-up{ flex-direction:column; align-items:flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="eyebrow">Treino Diário — Ajustado</div>
+    <h1>FERNANDO</h1>
+    <div class="sub">Rotação A → B → C · Sessão <span id="sessionNum">6</span> de 36 · Ajustes articulares aplicados</div>
+    <div class="cycle-bar">
+      <div class="cycle-track"><div class="cycle-fill" id="cycleFill"></div></div>
+      <div class="cycle-label" id="cycleLabel">17%</div>
+    </div>
+    <div id="saveStatus" class="ok">✓ salvo</div>
+  </div>
+</header>
+
+<div class="next-up" id="nextUpBanner">
+  <div>
+    <div class="next-up-text">Próximo treino na rotação</div>
+    <div class="next-up-day" id="nextUpDay">Treino A</div>
+  </div>
+  <div class="next-up-text" id="lastSessionInfo">Nenhuma sessão registrada ainda</div>
+</div>
+
+<div class="tabs">
+  <div class="tab" data-day="A">A<span class="done-badge" id="badgeA">—</span></div>
+  <div class="tab" data-day="B">B<span class="done-badge" id="badgeB">—</span></div>
+  <div class="tab" data-day="C">C<span class="done-badge" id="badgeC">—</span></div>
+</div>
+
+<main id="main"></main>
+
+<div class="history-toggle"><button id="historyToggleBtn">ver histórico de sessões ▾</button></div>
+<div id="historyBox"></div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span> ajuste por dor articular</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--acid)"></span> troca de polia (disponibilidade)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--red)"></span> atenção / controlar amplitude</div>
+</div>
+
+<script>
+const DATA = {
+  A: {
+    label: "Perna · Peitoral · Bíceps · Abdômen",
+    cardioPos: "start",
+    exercises: [
+      {id:"a1", name:"Leg Press 45º", tag:"Perna", series:3, reps:"12-15", load:"AP 10",
+        note:{type:"caution", text:"<b>Controlar amplitude:</b> não deixar o joelho passar de ~90° de flexão. Se doer, reduzir ainda mais o curso. Este é o principal movimento de empurrar do dia — substitui a função do Agachamento Smith."}},
+      {id:"a2", name:"Cadeira Adutora", tag:"Perna", series:3, reps:"12-15", load:"a definir",
+        originalName:"Agachamento Sumô",
+        note:{type:"modified", text:"<b>Substitui</b> Agachamento Sumô. O Sumô enfatizava a parte interna da coxa (adutores) — a Cadeira Adutora cobre esse estímulo sem carga axial no joelho."}},
+      {id:"a3", name:"Cadeira Extensora", tag:"Perna", series:3, reps:"12-15", load:"AP 15",
+        note:{type:"caution", text:"Isolador de quadríceps. Amplitude parcial — evitar travar o joelho em extensão total."}},
+      {id:"a5", name:"Crucifixo Máquina", tag:"Peitoral", series:3, reps:"12-15", load:"AP 2"},
+      {id:"a6", name:"Supino Reto Halter", tag:"Peitoral", series:3, reps:"12-15", load:"AP 28 banco"},
+      {id:"a7", name:"Rosca Alternada", tag:"Bíceps", series:3, reps:"12-15", load:"—"},
+      {id:"a8", name:"Rosca Concentrada", tag:"Bíceps", series:3, reps:"12-15", load:"—"},
+      {id:"a9", name:"Abdominal Infra", tag:"Abdômen", series:3, reps:"12-15", load:"AP 9"},
+    ]
+  },
+  B: {
+    label: "Perna · Dorsal · Tríceps · Lombar",
+    cardioPos: "start",
+    exercises: [
+      {id:"b1", name:"Cadeira Flexora", tag:"Perna", series:3, reps:"12-15", load:"AP 14",
+        note:{type:"swap", text:"Isolador de posterior — baixo estresse axial no joelho. Mantido sem alteração."}},
+      {id:"b2", name:"Mesa Flexora", tag:"Perna", series:3, reps:"12-15", load:"AP 1",
+        originalName:"Flexão de Joelho Cross",
+        note:{type:"swap", text:"<b>Substitui</b> Flexão de Joelho Cross — troca de polia por disponibilidade de aparelho no horário."}},
+      {id:"b3", name:"Stiff Halter", tag:"Perna", series:3, reps:"12-15", load:"—", obs:"unilateral",
+        note:{type:"caution", text:"Versão unilateral exige estabilização de tornozelo. Se doer, trocar para <b>Stiff bilateral</b> ou Mesa Flexora."}},
+      {id:"b4", name:"Panturrilha Máquina Sentado", tag:"Perna", series:3, reps:"12-15", load:"AP 23",
+        note:{type:"caution", text:"Reduzir amplitude no alongamento final se sentir o tornozelo reclamar."}},
+      {id:"b5", name:"Puxador Barra Romana", tag:"Dorsal", series:3, reps:"12-15", load:"50"},
+      {id:"b6", name:"Remada Curvada Barra Reta", tag:"Dorsal", series:3, reps:"12-15", load:"—"},
+      {id:"b7", name:"Tríceps Testa com Halter", tag:"Tríceps", series:3, reps:"12-15", load:"AP 1",
+        originalName:"Tríceps Cross",
+        note:{type:"swap", text:"<b>Substitui</b> Tríceps Cross — troca de polia por disponibilidade. Já existe equivalente livre no próprio treino B (Tríceps Francês Halter, abaixo)."}},
+      {id:"b8", name:"Tríceps Francês Halter", tag:"Tríceps", series:3, reps:"12-15", load:"Tríceps Máquina"},
+      {id:"b9", name:"Banco Lombar", tag:"Lombar", series:3, reps:"12-15", load:"AP 22"},
+    ]
+  },
+  C: {
+    label: "Perna · Glúteo · Ombro · Abdômen",
+    cardioPos: "start",
+    exercises: [
+      {id:"c1", name:"Cadeira Abdutora", tag:"Perna", series:3, reps:"12-15", load:"AP 12"},
+      {id:"c2", name:"Abdução em Pé com Caneleira", tag:"Perna", series:3, reps:"12-15", load:"a definir",
+        originalName:"Abdução Cross",
+        note:{type:"swap", text:"<b>Substitui</b> Abdução Cross — troca de polia por disponibilidade. Versão unilateral em pé, trabalha o abdutor por um ângulo diferente da Cadeira Abdutora (sem duplicar a máquina). Sem impacto axial."}},
+      {id:"c3", name:"Glúteo 4 Apoios (com anilha ou caneleira)", tag:"Glúteo", series:3, reps:"12-15", load:"AP 1",
+        originalName:"Extensão de Quadril Cross",
+        note:{type:"swap", text:"<b>Substitui</b> Extensão de Quadril Cross — troca de polia por disponibilidade."}},
+      {id:"c4", name:"Elevação Pélvica Máquina", tag:"Glúteo", series:3, reps:"12-15", load:"AP 30"},
+      {id:"c5", name:"Glúteo Máquina Vertical", tag:"Glúteo", series:3, reps:"12-15", load:"AP 5"},
+      {id:"c6", name:"Elevação Lateral Halter", tag:"Ombro", series:3, reps:"12-15", load:"—"},
+      {id:"c7", name:"Elevação Frontal Anilha", tag:"Ombro", series:3, reps:"12-15", load:"—"},
+      {id:"c8", name:"Desenvolvimento Máquina", tag:"Ombro", series:3, reps:"12-15", load:"ap 18"},
+      {id:"c9", name:"Prancha", tag:"Abdômen", series:3, reps:"40\"", load:"—"},
+    ]
+  }
+};
+
+const TOTAL_SESSIONS = 36;
+let state = { checks:{}, history:[], currentDay:'A', sessionNum:6 };
+let activeDay = 'A';
+
+const STORAGE_KEY = 'treino-fernando-state';
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ state = JSON.parse(raw); }
+    setSaveStatus('ok');
+  }catch(e){
+    // localStorage indisponível (modo privado, navegador antigo) ou JSON corrompido
+    console.error('Falha ao carregar estado salvo:', e);
+    setSaveStatus('unsupported');
+  }
+  determineActiveDay();
+  render();
+}
+
+function setSaveStatus(status){
+  const el = document.getElementById('saveStatus');
+  if(!el) return;
+  el.classList.remove('saving','ok','error','unsupported');
+  el.classList.add(status);
+  if(status === 'saving') el.textContent = 'salvando…';
+  if(status === 'ok') el.textContent = '✓ salvo neste navegador';
+  if(status === 'error') el.textContent = '⚠ falha ao salvar — toque para tentar novamente';
+  if(status === 'unsupported') el.textContent = '⚠ este navegador não permite salvar progresso (modo privado?)';
+}
+
+// localStorage é síncrono e local ao navegador/dispositivo — não precisa de fila
+// nem retry de rede como no ambiente de artifact. A falha mais comum é quota
+// excedida ou modo de navegação privada bloqueando o storage.
+function saveState(){
+  setSaveStatus('saving');
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setSaveStatus('ok');
+    return true;
+  }catch(e){
+    console.error('Falha ao salvar:', e);
+    setSaveStatus('error');
+    return false;
+  }
+}
+
+function retrySave(){
+  return saveState();
+}
+
+function determineActiveDay(){
+  // active tab = next day to be done, or last opened
+  activeDay = state.currentDay || 'A';
+}
+
+function rotationOrder(d){ return {A:'B', B:'C', C:'A'}[d]; }
+
+function dayProgress(day){
+  const total = DATA[day].exercises.length;
+  const done = DATA[day].exercises.filter(ex => state.checks[ex.id]).length;
+  return {done, total};
+}
+
+function isDayComplete(day){
+  const p = dayProgress(day);
+  return p.done === p.total;
+}
+
+function formatDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) + ' às ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function render(){
+  // tabs
+  document.querySelectorAll('.tab').forEach(t=>{
+    const day = t.dataset.day;
+    t.classList.toggle('active', day===activeDay);
+    const p = dayProgress(day);
+    document.getElementById('badge'+day).textContent = p.done+'/'+p.total;
+  });
+
+  // next up banner
+  const lastEntry = state.history[state.history.length-1];
+  const nextDay = lastEntry ? rotationOrder(lastEntry.day) : 'A';
+  document.getElementById('nextUpDay').textContent = 'Treino ' + nextDay;
+  document.getElementById('lastSessionInfo').textContent = lastEntry
+    ? ('Último: Treino ' + lastEntry.day + ' em ' + formatDate(lastEntry.date))
+    : 'Nenhuma sessão registrada ainda';
+
+  // cycle bar
+  const sessionsDone = state.history.length;
+  const sessionNumDisplay = Math.min(6 + sessionsDone, TOTAL_SESSIONS);
+  document.getElementById('sessionNum').textContent = sessionNumDisplay;
+  const pct = Math.round((sessionNumDisplay/TOTAL_SESSIONS)*100);
+  document.getElementById('cycleFill').style.width = pct+'%';
+  document.getElementById('cycleLabel').textContent = pct+'%';
+
+  // main panel
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  Object.keys(DATA).forEach(day=>{
+    const panel = document.createElement('div');
+    panel.className = 'day-panel' + (day===activeDay ? ' active' : '');
+    panel.id = 'panel-'+day;
+
+    const p = dayProgress(day);
+    const dayHistory = state.history.filter(h=>h.day===day);
+    const lastDone = dayHistory.length ? dayHistory[dayHistory.length-1].date : null;
+
+    let html = `
+      <div class="day-meta">
+        <div class="day-meta-left"><b>Treino ${day}</b> — ${DATA[day].label}</div>
+        <div class="last-done">${lastDone ? 'última vez: '+formatDate(lastDone) : 'ainda não realizado'}</div>
+      </div>
+      <div class="cardio-card">
+        <div class="cardio-top">
+          <div class="cardio-name">Cardio — Esteira</div>
+        </div>
+        <div class="cardio-detail">20–25 min · caminhada moderada · antes do treino de força (aquecimento de baixo impacto)</div>
+      </div>
+    `;
+
+    let currentTag = '';
+    DATA[day].exercises.forEach(ex=>{
+      if(ex.tag !== currentTag){
+        currentTag = ex.tag;
+        html += `<div class="group-divider">${currentTag}</div>`;
+      }
+      const checked = !!state.checks[ex.id];
+      const hasNote = !!ex.note;
+      const isModified = ex.note && (ex.note.type === 'modified');
+      html += `
+        <div class="ex-card ${checked?'checked':''} ${isModified?'modified':''}" data-exid="${ex.id}">
+          <div class="ex-top">
+            <div>
+              <div class="ex-name">${ex.name}</div>
+              <div class="ex-tag">${ex.tag}${ex.seriesLabel ? ' · ' + ex.seriesLabel : ''}</div>
+            </div>
+            <button class="check-btn ${checked?'checked':''}" data-exid="${ex.id}"></button>
+          </div>
+          <div class="ex-stats">
+            <span>séries <b>${ex.series}</b></span>
+            <span>reps <b>${ex.reps}</b></span>
+            <span>carga <b>${ex.load}</b></span>
+            ${ex.obs ? `<span>obs <b>${ex.obs}</b></span>` : ''}
+          </div>
+          ${ex.originalName ? `<div class="ex-original">no treino original: <s>${ex.originalName}</s></div>` : ''}
+          ${hasNote ? `<div class="ex-note ${ex.note.type}">${ex.note.text}</div>` : ''}
+        </div>
+      `;
+    });
+
+    html += `<button class="finish-btn" data-day="${day}" ${p.done<p.total?'':''}>${p.done===p.total ? 'Finalizar treino ' + day : 'Finalizar treino ' + day + ' (' + p.done + '/' + p.total + ')'}</button>`;
+
+    panel.innerHTML = html;
+    main.appendChild(panel);
+  });
+
+  attachHandlers();
+  renderHistory();
+}
+
+function attachHandlers(){
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.onclick = ()=>{
+      // Apenas navegação visual — NÃO altera currentDay (que define o próximo
+      // treino da rotação) nem dispara gravação. Você pode ver qualquer plano
+      // sem concluir o anterior.
+      activeDay = t.dataset.day;
+      render();
+    };
+  });
+  document.querySelectorAll('.check-btn').forEach(b=>{
+    b.onclick = (e)=>{
+      e.stopPropagation();
+      const id = b.dataset.exid;
+      state.checks[id] = !state.checks[id];
+      saveState();
+      render();
+    };
+  });
+  document.querySelectorAll('.finish-btn').forEach(b=>{
+    b.onclick = ()=>{
+      const day = b.dataset.day;
+      const p = dayProgress(day);
+      if(p.done === 0){
+        alert('Marque ao menos um exercício antes de finalizar.');
+        return;
+      }
+
+      // snapshot para permitir rollback se a gravação falhar
+      const prevHistory = JSON.parse(JSON.stringify(state.history));
+      const prevChecks = JSON.parse(JSON.stringify(state.checks));
+      const prevCurrentDay = state.currentDay;
+
+      const now = new Date().toISOString();
+      state.history.push({day, date: now, completed: p.done, total: p.total});
+      DATA[day].exercises.forEach(ex=>{ state.checks[ex.id] = false; });
+      const next = rotationOrder(day);
+      state.currentDay = next;
+      activeDay = next;
+
+      const ok = saveState();
+      render();
+
+      if(!ok){
+        // gravação falhou de verdade — desfaz para não mentir pro usuário
+        state.history = prevHistory;
+        state.checks = prevChecks;
+        state.currentDay = prevCurrentDay;
+        activeDay = prevCurrentDay;
+        render();
+        alert('Não foi possível salvar essa sessão neste navegador (armazenamento local bloqueado, ex: modo anônimo). O treino NÃO foi marcado como concluído.');
+      }
+    };
+  });
+}
+
+function renderHistory(){
+  const box = document.getElementById('historyBox');
+  if(state.history.length === 0){
+    box.innerHTML = '<div style="color:var(--ink-faint); font-size:12px; font-family:Space Mono, monospace; padding:10px 0;">Nenhuma sessão concluída ainda.</div>';
+    return;
+  }
+  let html = '';
+  [...state.history].reverse().forEach(h=>{
+    html += `<div class="hist-row"><span>Treino ${h.day}</span><span>${h.completed}/${h.total} exercícios</span><span>${formatDate(h.date)}</span></div>`;
+  });
+  box.innerHTML = html;
+}
+
+document.getElementById('historyToggleBtn').onclick = ()=>{
+  const box = document.getElementById('historyBox');
+  const btn = document.getElementById('historyToggleBtn');
+  const open = box.style.display === 'block';
+  box.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? 'ver histórico de sessões ▾' : 'ocultar histórico ▴';
+};
+
+document.getElementById('saveStatus').onclick = ()=>{
+  if(document.getElementById('saveStatus').classList.contains('error')){
+    retrySave();
+  }
+};
+
+loadState();
+
+// Registra o Service Worker (necessário para instalação como app e uso offline).
+// Só funciona em https:// ou http://localhost — navegadores bloqueiam SW em
+// file:// e content://, então essa chamada falha silenciosamente nesses casos
+// sem afetar o funcionamento normal do treino (que continua usando localStorage).
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.error('Falha ao registrar Service Worker:', err);
+    });
+  });
+}
+</script>
+
+</body>
+</html>
